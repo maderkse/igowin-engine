@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#8b7355">
+    <title>iGoWin – not running</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #2d1810 0%, #1a0f0a 100%);
+            color: #e8d5b5;
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px 16px;
+            box-sizing: border-box;
+        }
+        .card {
+            max-width: 420px;
+            margin: 40px auto;
+            padding: 20px;
+            background: rgba(42, 42, 42, 0.8);
+            border: 1px solid rgba(139, 115, 85, 0.5);
+            border-radius: 12px;
+        }
+        h1 { color: #f0d9b5; font-size: 1.4em; margin-top: 0; }
+        code {
+            display: block;
+            background: #000;
+            color: #4ade80;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 8px 0 16px;
+            overflow-wrap: anywhere;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #5a7a5a;
+            background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 100%);
+            color: #e8d5b5;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>iGoWin is not running</h1>
+        <p>Tap the <b>iGoWin</b> widget on your home screen, or start it in Termux:</p>
+        <code>proot-distro login --no-kill-on-exit ubuntu -- /root/github/maderkse/igowin-engine/igowin.sh</code>
+        <p>Then come back here and try again.</p>
+        <button onclick="location.href = '/'">Try again</button>
+    </div>
+</body>
+</html>

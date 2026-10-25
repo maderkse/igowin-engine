@@ -1,0 +1,17 @@
+# build output and logs
+build/
+logs/
+__pycache__/
+gtp.out
+web.out
+
+# personal state on the phone: rank, saved/played games, learning backups
+igowin-player.json
+current-game.json
+games/
+backup/
+learnlog.txt
+
+# local session helpers
+resume.sh
+session-ses_*.md

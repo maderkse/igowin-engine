@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#8b7355">
+    <title>iGoWin Revival - Many Faces of Go</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(180deg, #2d1810 0%, #1a0f0a 100%);
+            color: #e8d5b5;
+            min-height: 100vh;
+            padding: 8px;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 12px 0;
+            background: linear-gradient(90deg, transparent, rgba(139, 115, 85, 0.3), transparent);
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            color: #f0d9b5;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        .header .subtitle {
+            font-size: 0.75em;
+            color: #b8956a;
+            margin-top: 2px;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(42, 42, 42, 0.8);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 0.85em;
+            border: 1px solid rgba(139, 115, 85, 0.4);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+        
+        .status-bar.connected .status-dot {
+            background: #4ade80;
+            box-shadow: 0 0 8px #4ade80;
+        }
+        
+        .status-bar.disconnected .status-dot {
+            background: #f87171;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(90deg, rgba(139, 115, 85, 0.4), rgba(100, 80, 60, 0.4));
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(139, 115, 85, 0.5);
+        }
+        
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .stone-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #000;
+        }
+        
+        .stone-black {
+            background: radial-gradient(circle at 30% 30%, #444, #000);
+        }
+        
+        .stone-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border-color: #666;
+        }
+        
+        .player-name {
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .vs {
+            padding: 0 12px;
+            color: #b8956a;
+            font-size: 0.9em;
+        }
+        
+        .turn-indicator {
+            text-align: center;
+            padding: 8px;
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #ffd700;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .board-wrapper {
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto 12px;
+            padding: 12px;
+            background: linear-gradient(145deg, #8b7355, #6b5a45);
+            border-radius: 12px;
+            box-shadow: 
+                0 8px 24px rgba(0,0,0,0.6),
+                inset 0 2px 4px rgba(212, 175, 55, 0.3);
+        }
+        
+        .board-container {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #dcb35c;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+
+        /* magnifier loop shown above the finger while placing a stone (as in iPhone igowin) */
+        #loupe {
+            position: fixed;
+            width: 130px;
+            height: 130px;
+            pointer-events: none;
+            display: none;
+            z-index: 500;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+        }
+        
+        .score-panel {
+            display: none;
+            max-width: 420px;
+            margin: 0 auto 12px;
+            padding: 12px 14px;
+            background: linear-gradient(180deg, #3a2a1a 0%, #2a1a0a 100%);
+            border: 1px solid rgba(139, 115, 85, 0.6);
+            border-radius: 10px;
+        }
+
+        .score-panel.active {
+            display: block;
+        }
+
+        .score-panel h3 {
+            text-align: center;
+            color: #f0d9b5;
+            margin-bottom: 8px;
+        }
+
+        .score-panel table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .score-panel th, .score-panel td {
+            padding: 4px 6px;
+            text-align: right;
+            border-bottom: 1px solid rgba(139, 115, 85, 0.3);
+        }
+
+        .score-panel th:first-child, .score-panel td:first-child {
+            text-align: left;
+        }
+
+        .score-panel .total td {
+            font-weight: 600;
+            color: #f0d9b5;
+            border-bottom: none;
+        }
+
+        .score-result {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #4ade80;
+            margin-bottom: 6px;
+        }
+
+        .score-help {
+            text-align: center;
+            font-size: 0.75em;
+            color: #b8956a;
+            margin-bottom: 10px;
+        }
+
+        .score-panel .control-btn {
+            width: 100%;
+        }
+
+        .score-panel .control-btn + .control-btn {
+            margin-top: 8px;
+        }
+
+        .quit-btn {
+            grid-column: 1 / -1;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 420px;
+            margin: 0 auto 10px;
+        }
+        
+        .control-btn {
+            background: linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 100%);
+            color: #e8d5b5;
+            border: 1px solid #666;
+            padding: 12px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: all 0.15s ease;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(180deg, #3a3a3a 0%, #1a1a1a 100%);
+        }
+        
+        .control-btn.primary {
+            background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 100%);
+            border-color: #5a7a5a;
+            grid-column: span 2;
+        }
+        
+        .control-btn.danger {
+            background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 100%);
+            border-color: #7a5a5a;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: linear-gradient(180deg, #3a2a1a 0%, #2a1a0a 100%);
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 320px;
+            width: 100%;
+            border: 2px solid rgba(139, 115, 85, 0.6);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+        }
+        
+        .modal-content h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #f0d9b5;
+            font-size: 1.4em;
+        }
+        
+        .modal-content select {
+            width: 100%;
+            background: #2a2a2a;
+            color: #e8d5b5;
+            border: 1px solid #666;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 12px;
+        }
+        
+        .modal-content label {
+            display: block;
+            font-size: 0.8em;
+            color: #b8956a;
+            margin-bottom: 4px;
+        }
+        
+        .modal-content button {
+            width: 100%;
+            background: linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 100%);
+            color: #e8d5b5;
+            border: 1px solid #666;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        
+        .modal-content button.primary {
+            background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 100%);
+            border-color: #5a7a5a;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>iGoWin</h1>
+        <div class="subtitle" id="playerLine">Many Faces of Go Engine</div>
+    </div>
+    
+    <div id="statusBar" class="status-bar disconnected">
+        <div class="status-dot"></div>
+        <span id="statusText">Connecting to Engine...</span>
+    </div>
+    
+    <div class="game-header">
+        <div class="player-info">
+            <div class="stone-icon stone-black"></div>
+            <span class="player-name"><span id="blackName">Black</span> · <span id="blackPris">0</span> captured</span>
+        </div>
+        <div class="vs">VS</div>
+        <div class="player-info" style="justify-content: flex-end;">
+            <span class="player-name"><span id="whiteName">White</span> · <span id="whitePris">0</span> captured</span>
+            <div class="stone-icon stone-white"></div>
+        </div>
+    </div>
+    
+    <div id="turnIndicator" class="turn-indicator">
+        Black's Turn
+    </div>
+    
+    <div class="board-wrapper">
+        <div class="board-container" id="boardContainer">
+            <canvas id="board" width="400" height="400"></canvas>
+        </div>
+    </div>
+    <canvas id="loupe"></canvas>
+
+    <div id="scorePanel" class="score-panel">
+        <h3 id="scoreTitle">Score</h3>
+        <table>
+            <tr><th></th><th id="scHeadB">Black</th><th id="scHeadW">White</th></tr>
+            <tr><td>Territory</td><td id="scBT">0</td><td id="scWT">0</td></tr>
+            <tr><td>Captures</td><td id="scBP">0</td><td id="scWP">0</td></tr>
+            <tr><td>Komi</td><td>–</td><td id="scKomi">0</td></tr>
+            <tr class="total"><td>Total</td><td id="scB">0</td><td id="scW">0</td></tr>
+        </table>
+        <div id="scoreResult" class="score-result"></div>
+        <div class="score-help">Tap a group to mark it dead or alive</div>
+        <button class="control-btn primary" id="scoreDone" onclick="closeScoring()">Accept</button>
+        <button class="control-btn" id="scoreDispute" onclick="disputeScore()">Dispute score, continue play</button>
+    </div>
+    
+    <div class="controls-grid">
+        <button class="control-btn" onclick="newGame()">🎮 New</button>
+        <button class="control-btn" onclick="passMove()">⏭ Pass</button>
+        <button class="control-btn" onclick="undoMove()">↶ Undo</button>
+        <button class="control-btn danger" onclick="resign()">🏳 Resign</button>
+        <button class="control-btn" onclick="showScore()">📊 Score</button>
+        <button class="control-btn" onclick="showHint()" id="hintBtn">💡 Hint</button>
+        <button class="control-btn" onclick="saveGame()">💾 Save</button>
+        <button class="control-btn" onclick="toggleSound()" id="soundBtn">🔊 Sound</button>
+        <button class="control-btn quit-btn" onclick="quitApp()">⏻ Quit (stop engine)</button>
+    </div>
+    
+    <div id="newGameModal" class="modal">
+        <div class="modal-content">
+            <h2>New Game</h2>
+            <label for="boardSizeSelect">Board size</label>
+            <select id="boardSizeSelect" onchange="updateNewGameDialog()">
+                <option value="9">9×9</option>
+                <option value="13">13×13</option>
+                <option value="19" selected>19×19</option>
+            </select>
+            <div id="styleRow">
+                <label for="styleSelect">Game</label>
+                <select id="styleSelect" onchange="updateNewGameDialog()">
+                    <option value="igowin" selected>igowin style – rated, starts at max handicap</option>
+                    <option value="free">Free game – even, unrated</option>
+                </select>
+            </div>
+            <div id="rankRow">
+                <label for="rankSelect" id="rankLabel">Your rank</label>
+                <select id="rankSelect" onchange="updatePreview()"></select>
+            </div>
+            <div id="setupPreview" class="score-help"></div>
+            <button class="primary" onclick="startNewGame()">Start Game</button>
+            <button onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const boardContainer = document.getElementById('boardContainer');
+        
+        // human plays black, the engine plays white
+        let boardSize = 19;
+        let board = Array(boardSize * boardSize).fill(0);
+        let lastMove = -1;
+        let lastColor = '';
+        let busy = false;      // waiting for the engine
+        let gameOver = false;
+        let passes = 0;        // consecutive passes, two ends the game
+        let scoring = null;    // {final, data} while the scoring screen is open
+        let human = 'black';   // color the player has this game, from the server's game setup
+        let engine = 'white';
+        let setup = null;      // server game setup: level, handicap, komi, ranks
+        let player = null;     // rank and record from the server
+        let hints = [];        // suggested points, best first, shown until the next move
+        let prevPris = [0, 0]; // captures before the last move, to pick the capture sound
+
+        // original igowin sounds, played through Web Audio for low latency;
+        // the audio context can only start after the first tap
+        const SOUND_FILES = {
+            clickb: 'goclickb.wav', clickw: 'goclickw.wav',
+            captb: 'gocaptb.wav', captw: 'gocaptw.wav',
+            atari: 'goatari.wav', pass: 'gopass.wav', illegal: 'goillmv.wav'
+        };
+        const soundBuffers = {};
+        let audioCtx = null;
+        // stone sound: 'original' (Many Faces of Go click with added board body), 'wood' (synthesized) or 'off'
+        const SOUND_MODES = ['original', 'wood', 'off'];
+        let soundMode = 'original';
+        try {
+            const saved = localStorage.getItem('igowin-sound');
+            if (SOUND_MODES.includes(saved)) soundMode = saved;
+            else if (saved === 'off') soundMode = 'off';
+        } catch (e) {}
+
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                return;
+            }
+            for (const [name, file] of Object.entries(SOUND_FILES)) {
+                fetch(file)
+                    .then(r => r.arrayBuffer())
+                    .then(data => audioCtx.decodeAudioData(data))
+                    .then(buf => { soundBuffers[name] = buf; })
+                    .catch(e => console.error('sound', file, e));
+            }
+        }
+        document.addEventListener('pointerdown', initAudio, {once: true});
+
+        function playSound(name, volume = 1, when = 0) {
+            if (soundMode === 'off' || !audioCtx || !soundBuffers[name]) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const src = audioCtx.createBufferSource();
+            src.buffer = soundBuffers[name];
+            const g = audioCtx.createGain();
+            g.gain.value = volume;
+            src.connect(g);
+            g.connect(audioCtx.destination);
+            src.start(when);
+        }
+
+        // A stone placed on a wooden board: a sharp contact click, the bright ring of
+        // the stone, and the low thump of the board. White (shell) is a little higher.
+        let noiseBuffer = null;
+
+        // shared setup for the synthesized sounds: start time, output, and helpers
+        function woodVoice(volume) {
+            if (!audioCtx) return null;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const t = audioCtx.currentTime + 0.005;
+            if (!noiseBuffer) {
+                noiseBuffer = audioCtx.createBuffer(1, Math.round(audioCtx.sampleRate * 0.1), audioCtx.sampleRate);
+                const d = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            }
+            const out = audioCtx.createGain();
+            out.gain.value = volume;
+            out.connect(audioCtx.destination);
+
+            const envelope = (node, peak, decay) => {
+                const g = audioCtx.createGain();
+                g.gain.setValueAtTime(0.0001, t);
+                g.gain.exponentialRampToValueAtTime(peak, t + 0.001);
+                g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+                node.connect(g);
+                g.connect(out);
+            };
+            const noise = (filterType, freq, q) => {
+                const src = audioCtx.createBufferSource();
+                src.buffer = noiseBuffer;
+                const f = audioCtx.createBiquadFilter();
+                f.type = filterType;
+                f.frequency.value = freq;
+                f.Q.value = q;
+                src.connect(f);
+                src.start(t);
+                src.stop(t + 0.1);
+                return f;
+            };
+            return {t, envelope, noise};
+        }
+
+        // the low thump of the wooden board, shared by both stone sounds
+        function woodBody(v, white, volume) {
+            const body = audioCtx.createOscillator();
+            body.type = 'sine';
+            body.frequency.setValueAtTime(white ? 210 : 190, v.t);
+            body.frequency.exponentialRampToValueAtTime(140, v.t + 0.08);
+            body.start(v.t);
+            body.stop(v.t + 0.12);
+            v.envelope(body, volume, 0.09);
+        }
+
+        function woodClick(white) {
+            const v = woodVoice(0.9);
+            if (!v) return;
+            // contact click
+            v.envelope(v.noise('highpass', 3500, 0.7), 0.6, 0.012);
+            // ring of the stone and the hard board surface
+            v.envelope(v.noise('bandpass', white ? 2700 : 2300, 6), 1.8, 0.06);
+            woodBody(v, white, 0.5);
+        }
+
+        // The original Many Faces of Go click has almost nothing below 1 kHz, so on a
+        // phone speaker it is a thin tick. Play it softer, with the board's thump and
+        // some low-mid board tone underneath.
+        function originalClick(white) {
+            const v = woodVoice(1);
+            if (!v) return;
+            playSound(white ? 'clickw' : 'clickb', 0.55, v.t);
+            v.envelope(v.noise('bandpass', 600, 1.5), 0.5, 0.04);
+            woodBody(v, white, 0.6);
+        }
+
+        function stoneSound(white) {
+            if (soundMode === 'wood') woodClick(white);
+            else originalClick(white);
+        }
+
+        function toggleSound() {
+            soundMode = SOUND_MODES[(SOUND_MODES.indexOf(soundMode) + 1) % SOUND_MODES.length];
+            try { localStorage.setItem('igowin-sound', soundMode); } catch (e) {}
+            updateSoundButton();
+            if (soundMode !== 'off') {
+                initAudio();
+                stoneSound(false);   // let the player hear the chosen sound
+            }
+        }
+
+        function updateSoundButton() {
+            const label = {wood: '🔊 Wood', original: '🔊 Original', off: '🔇 Off'};
+            document.getElementById('soundBtn').textContent = label[soundMode];
+        }
+
+        // the stone, then the capture sound when stones were taken; atari follows the stone
+        function moveSound(state) {
+            if (soundMode === 'off') return;
+            if (state.last === 'pass') {
+                playSound('pass');
+                return;
+            }
+            stoneSound(state.lastcolor === 'w');
+            if (state.pris[0] > prevPris[0]) setTimeout(() => playSound('captb'), 120);
+            else if (state.pris[1] > prevPris[1]) setTimeout(() => playSound('captw'), 120);
+            if (state.atari) setTimeout(() => playSound('atari'), 250);
+        }
+
+        // original igowin wood grain texture
+        const grainImg = new Image();
+        grainImg.onload = () => drawBoard();
+        grainImg.src = 'grain.png';
+
+        // magnifier ring from the iPhone version
+        const loopImg = new Image();
+        loopImg.src = 'loop@2x.png';
+        const loupe = document.getElementById('loupe');
+        const lctx = loupe.getContext('2d');
+        const LOUPE_SIZE = 130;                       // CSS px, matches #loupe
+        const LOUPE_ZOOM = {9: 1.2, 13: 1.4, 19: 1.7};
+        let ghost = -1;        // point under the finger, drawn as a translucent stone
+        let tracking = false;
+        let trackingTouch = false;
+
+        // render at the screen's pixel density so the board and magnifier stay sharp
+        function resizeCanvas() {
+            const rect = boardContainer.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.width * dpr);
+            loupe.width = loupe.height = Math.round(LOUPE_SIZE * dpr);
+            drawBoard();
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 100));
+        window.addEventListener('load', resizeCanvas);
+        
+        function drawBoard() {
+            const size = canvas.width;
+            const padding = size * 0.05;
+            const gridSize = size * 0.9;
+            const cellSize = gridSize / (boardSize - 1);
+            
+            if (grainImg.complete && grainImg.naturalWidth) {
+                ctx.drawImage(grainImg, 0, 0, size, size);
+            } else {
+                ctx.fillStyle = '#dcb35c';
+                ctx.fillRect(0, 0, size, size);
+            }
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = Math.max(0.5, size * 0.002);
+            
+            for (let i = 0; i < boardSize; i++) {
+                ctx.beginPath();
+                ctx.moveTo(padding + i * cellSize, padding);
+                ctx.lineTo(padding + i * cellSize, padding + gridSize);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(padding, padding + i * cellSize);
+                ctx.lineTo(padding + gridSize, padding + i * cellSize);
+                ctx.stroke();
+            }
+            
+            if (boardSize === 19) {
+                const stars = [3, 9, 15];
+                ctx.fillStyle = '#000';
+                for (let si of stars) {
+                    for (let sj of stars) {
+                        ctx.beginPath();
+                        ctx.arc(padding + si * cellSize, padding + sj * cellSize, size * 0.007, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            } else if (boardSize === 13) {
+                const stars = [3, 6, 9];
+                ctx.fillStyle = '#000';
+                for (let si of stars) {
+                    for (let sj of stars) {
+                        ctx.beginPath();
+                        ctx.arc(padding + si * cellSize, padding + sj * cellSize, size * 0.006, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            } else if (boardSize === 9) {
+                const stars = [2, 6];
+                ctx.fillStyle = '#000';
+                for (let si of stars) {
+                    for (let sj of stars) {
+                        ctx.beginPath();
+                        ctx.arc(padding + si * cellSize, padding + sj * cellSize, size * 0.006, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+            
+            for (let i = 0; i < boardSize * boardSize; i++) {
+                if (board[i] === 1 || board[i] === 2) {
+                    const row = Math.floor(i / boardSize);
+                    const col = i % boardSize;
+                    const x = padding + col * cellSize;
+                    const y = padding + row * cellSize;
+                    const radius = cellSize * 0.44;
+
+                    // dead stones are shown faded on the scoring screen
+                    ctx.globalAlpha = scoring && scoring.data && 'xo'.includes(scoring.data.map[i]) ? 0.35 : 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    if (board[i] === 1) {
+                        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+                        grad.addColorStop(0, '#666');
+                        grad.addColorStop(1, '#000');
+                        ctx.fillStyle = grad;
+                        ctx.fill();
+                    } else {
+                        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+                        grad.addColorStop(0, '#fff');
+                        grad.addColorStop(1, '#ccc');
+                        ctx.fillStyle = grad;
+                        ctx.fill();
+                        ctx.strokeStyle = '#999';
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+
+                    if (i === lastMove) {
+                        ctx.strokeStyle = board[i] === 1 ? '#ff4444' : '#4444ff';
+                        ctx.lineWidth = Math.max(2, cellSize * 0.08);
+                        ctx.beginPath();
+                        ctx.arc(x, y, radius * 0.5, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // territory markers: a small square of the owner's color, also on dead stones
+            if (scoring && scoring.data) {
+                const map = scoring.data.map;
+                const side = cellSize * 0.32;
+                for (let i = 0; i < map.length; i++) {
+                    const ch = map[i];
+                    const owner = (ch === 'b' || ch === 'o') ? '#000' : (ch === 'w' || ch === 'x') ? '#fff' : null;
+                    if (!owner) continue;
+                    const x = padding + (i % boardSize) * cellSize;
+                    const y = padding + Math.floor(i / boardSize) * cellSize;
+                    ctx.fillStyle = owner;
+                    ctx.fillRect(x - side / 2, y - side / 2, side, side);
+                    ctx.strokeStyle = owner === '#000' ? '#fff' : '#000';
+                    ctx.lineWidth = Math.max(1, cellSize * 0.03);
+                    ctx.strokeRect(x - side / 2, y - side / 2, side, side);
+                }
+            }
+
+            // numbered hint markers, 1 = best
+            hints.forEach((h, n) => {
+                if (h < 0) return;
+                const x = padding + (h % boardSize) * cellSize;
+                const y = padding + Math.floor(h / boardSize) * cellSize;
+                ctx.fillStyle = n === 0 ? 'rgba(46, 160, 67, 0.85)' : 'rgba(46, 160, 67, 0.55)';
+                ctx.beginPath();
+                ctx.arc(x, y, cellSize * 0.42, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${Math.round(cellSize * 0.5)}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(n + 1), x, y);
+            });
+            
+            if (ghost >= 0) {
+                const x = padding + (ghost % boardSize) * cellSize;
+                const y = padding + Math.floor(ghost / boardSize) * cellSize;
+                const radius = cellSize * 0.44;
+                const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+                grad.addColorStop(0, human === 'black' ? '#666' : '#fff');
+                grad.addColorStop(1, human === 'black' ? '#000' : '#ccc');
+                ctx.globalAlpha = 0.55;
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        // Touch-and-drag placement: while the finger is down a magnifier shows the
+        // points under it and a ghost stone marks the target; lifting plays the move.
+        function trackPointer(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scale = canvas.width / rect.width;
+            const x = (e.clientX - rect.left) * scale;
+            const y = (e.clientY - rect.top) * scale;
+
+            const padding = canvas.width * 0.05;
+            const cellSize = canvas.width * 0.9 / (boardSize - 1);
+            const col = Math.round((x - padding) / cellSize);
+            const row = Math.round((y - padding) / cellSize);
+
+            ghost = -1;
+            if (col >= 0 && col < boardSize && row >= 0 && row < boardSize &&
+                board[row * boardSize + col] === 0) {
+                ghost = row * boardSize + col;
+            }
+            drawBoard();
+            if (trackingTouch) showLoupe(e.clientX, e.clientY, x, y, scale);
+        }
+
+        function showLoupe(clientX, clientY, boardX, boardY, scale) {
+            const half = LOUPE_SIZE / 2;
+            const gap = 45;   // keep the loop clear of the fingertip
+            let cx = clientX;
+            let cy = clientY - half - gap;
+            if (cy - half < 4) {
+                // no room above the finger: move the loop beside it, towards the middle
+                cx = clientX < window.innerWidth / 2 ? clientX + half + gap : clientX - half - gap;
+                cy = Math.max(half + 4, clientY);
+            }
+            cx = Math.min(Math.max(cx, half + 4), window.innerWidth - half - 4);
+            loupe.style.left = (cx - half) + 'px';
+            loupe.style.top = (cy - half) + 'px';
+            loupe.style.display = 'block';
+
+            const dpr = loupe.width / LOUPE_SIZE;
+            const src = LOUPE_SIZE / (LOUPE_ZOOM[boardSize] || 1.5) * scale;
+            lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            lctx.clearRect(0, 0, LOUPE_SIZE, LOUPE_SIZE);
+            lctx.save();
+            lctx.beginPath();
+            lctx.arc(half, half, half - 3, 0, Math.PI * 2);
+            lctx.clip();
+            lctx.fillStyle = '#2a1a0a';
+            lctx.fillRect(0, 0, LOUPE_SIZE, LOUPE_SIZE);
+            lctx.drawImage(canvas, boardX - src / 2, boardY - src / 2, src, src,
+                           0, 0, LOUPE_SIZE, LOUPE_SIZE);
+            lctx.restore();
+            if (loopImg.complete && loopImg.naturalWidth) {
+                lctx.drawImage(loopImg, 0, 0, LOUPE_SIZE, LOUPE_SIZE);
+            }
+        }
+
+        function stopTracking() {
+            tracking = false;
+            loupe.style.display = 'none';
+            const target = ghost;
+            ghost = -1;
+            drawBoard();
+            return target;
+        }
+
+        // on the scoring screen a tap toggles the group under the finger dead/alive
+        async function scoringTap(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scale = canvas.width / rect.width;
+            const padding = canvas.width * 0.05;
+            const cellSize = canvas.width * 0.9 / (boardSize - 1);
+            const col = Math.round(((e.clientX - rect.left) * scale - padding) / cellSize);
+            const row = Math.round(((e.clientY - rect.top) * scale - padding) / cellSize);
+            if (col < 0 || col >= boardSize || row < 0 || row >= boardSize) return;
+            if (board[row * boardSize + col] === 0) return;
+            await loadScore(LETTERS[col] + (boardSize - row));
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (scoring) {
+                if (!busy) scoringTap(e);
+                return;
+            }
+            if (busy || gameOver) return;
+            canvas.setPointerCapture(e.pointerId);
+            tracking = true;
+            trackingTouch = e.pointerType !== 'mouse';
+            trackPointer(e);
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (tracking) trackPointer(e);
+        });
+
+        canvas.addEventListener('pointerup', async () => {
+            if (!tracking) return;
+            const target = stopTracking();
+            if (target >= 0 && !busy && !gameOver) {
+                await playMove(Math.floor(target / boardSize), target % boardSize);
+            }
+        });
+
+        canvas.addEventListener('pointercancel', () => {
+            if (tracking) stopTracking();
+        });
+        async function sendGTP(cmd) {
+            try {
+                const resp = await fetch('/api/gtp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cmd: cmd})
+                });
+                return await resp.json();
+            } catch (e) {
+                console.error(e);
+                updateStatus(false);
+                return {success: false, result: ''};
+            }
+        }
+        
+        function updateStatus(connected) {
+            const bar = document.getElementById('statusBar');
+            const text = document.getElementById('statusText');
+            if (connected) {
+                bar.className = 'status-bar connected';
+                text.textContent = 'Connected • Many Faces of Go Engine';
+            } else {
+                bar.className = 'status-bar disconnected';
+                text.textContent = 'Disconnected';
+            }
+        }
+        
+        async function checkStatus() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                updateStatus(data.connected);
+            } catch (e) {
+                updateStatus(false);
+            }
+        }
+        
+        function setMessage(text, color) {
+            const ind = document.getElementById('turnIndicator');
+            ind.textContent = text;
+            ind.style.color = color || '#ffd700';
+        }
+
+        function updateTurn() {
+            if (gameOver) return;
+            if (busy) {
+                setMessage('Computer Thinking...', '#87ceeb');
+            } else {
+                setMessage(`Your Turn (${colorName(human)})`);
+            }
+        }
+        
+        function colorName(c) {
+            return c === 'black' ? 'Black' : 'White';
+        }
+        
+        function rankName(r) {
+            return r < 0 ? `${-r}k` : `${r}d`;
+        }
+        
+        // header: names with ranks, and the player's rank and record
+        function updatePlayers() {
+            const myRank = player && setup && setup.rankKey === 'rank9' ? player.rank9Name : player && player.rankName;
+            const you = player && setup && setup.rated ? `You ${myRank}` : 'You';
+            const comp = setup ? `Computer ${rankName(setup.engineRank)}` : 'Computer';
+            document.getElementById('blackName').textContent = human === 'black' ? you : comp;
+            document.getElementById('whiteName').textContent = human === 'white' ? you : comp;
+            document.getElementById('scHeadB').textContent = human === 'black' ? 'Black (You)' : 'Black';
+            document.getElementById('scHeadW').textContent = human === 'white' ? 'White (You)' : 'White';
+            if (player) {
+                const label = setup && setup.rankKey === 'rank9' ? '9×9 rank' : 'Rank';
+                let line = setup && !setup.rated
+                    ? `${player.wins} won – ${player.losses} lost`
+                    : `${label} ${myRank} · ${player.wins} won – ${player.losses} lost`;
+                if (setup) {
+                    line += setup.handicap ? ` · ${setup.handicap} stones` : setup.komi < 1 ? ' · no komi' : ' · even';
+                    if (!setup.rated) line += ' · unrated';
+                }
+                document.getElementById('playerLine').textContent = line;
+            }
+        }
+
+        const LETTERS = 'ABCDEFGHJKLMNOPQRST';
+
+        function vertexToIndex(vertex) {
+            if (!vertex || vertex === 'pass') return -1;
+            const col = LETTERS.indexOf(vertex[0].toUpperCase());
+            const row = boardSize - parseInt(vertex.substring(1));
+            return row * boardSize + col;
+        }
+
+        // redraw everything from the engine's own board, so captures and undo are always right
+        // withSound: play the sound for the move that was just made
+        async function refresh(withSound) {
+            const resp = await sendGTP('igowin_state');
+            if (!resp.success) return null;
+            const state = JSON.parse(resp.result);
+            if (withSound) moveSound(state);
+            prevPris = state.pris;
+            hints = [];
+            boardSize = state.size;
+            board = Array.from(state.board, ch => ch === 'X' ? 1 : ch === 'O' ? 2 : 0);
+            lastMove = vertexToIndex(state.last);
+            lastColor = state.lastcolor;
+            document.getElementById('blackPris').textContent = state.pris[0];
+            document.getElementById('whitePris').textContent = state.pris[1];
+            drawBoard();
+            return state;
+        }
+
+        function newGame() {
+            if (busy) return;
+            const sel = document.getElementById('rankSelect');
+            if (!sel.options.length) {
+                for (let r = -25; r <= 6; r++) {
+                    if (r === 0) continue;
+                    sel.add(new Option(rankName(r), r));
+                }
+            }
+            updateNewGameDialog();
+            document.getElementById('newGameModal').classList.add('active');
+        }
+        
+        // the dialog's choices: style only on 9x9, and the rank that belongs to the chosen mode
+        function newGameChoice() {
+            const size = parseInt(document.getElementById('boardSizeSelect').value);
+            const style = size === 9 ? document.getElementById('styleSelect').value : null;
+            const key = size === 19 ? 'rank' : style === 'igowin' ? 'rank9' : null;
+            return {size: size, style: style, key: key};
+        }
+        
+        function updateNewGameDialog() {
+            const c = newGameChoice();
+            document.getElementById('styleRow').style.display = c.size === 9 ? 'block' : 'none';
+            document.getElementById('rankRow').style.display = c.key ? 'block' : 'none';
+            document.getElementById('rankLabel').textContent = c.key === 'rank9' ? 'Your 9×9 rank' : 'Your 19×19 rank';
+            if (player && c.key) document.getElementById('rankSelect').value = player[c.key];
+            updatePreview();
+        }
+        
+        function describeSetup(s) {
+            const opp = `Computer ${rankName(s.engineRank)}`;
+            const color = s.human === 'black' ? 'Black' : 'White';
+            let terms;
+            if (s.handicap) {
+                terms = s.human === 'black' ? `you get ${s.handicap} stones` : `you give ${s.handicap} stones`;
+            } else {
+                terms = s.komi < 1 ? 'no komi' : `even, komi ${s.komi}`;
+            }
+            return `You play ${color} vs ${opp}, ${terms}${s.rated ? '' : ' · unrated'}`;
+        }
+        
+        async function updatePreview() {
+            const c = newGameChoice();
+            const body = {size: c.size, style: c.style};
+            if (c.key) body.rank = parseInt(document.getElementById('rankSelect').value);
+            const resp = await postJSON('/api/preview', body);
+            document.getElementById('setupPreview').textContent = resp ? describeSetup(resp.setup) : '';
+        }
+
+        function closeModal() {
+            document.getElementById('newGameModal').classList.remove('active');
+        }
+
+        async function startNewGame() {
+            const c = newGameChoice();
+            const params = {size: c.size, style: c.style};
+            if (c.key) params.rank = parseInt(document.getElementById('rankSelect').value);
+            closeModal();
+            await beginGame(params);
+        }
+        
+        async function postJSON(url, body) {
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                return await resp.json();
+            } catch (e) {
+                console.error(e);
+                updateStatus(false);
+                return null;
+            }
+        }
+        
+        // the server sets up the game for the player's rank: opponent level, colors, handicap, komi
+        // url: /api/newgame for a new game, /api/resume to continue the saved one
+        async function beginGame(params, url = '/api/newgame') {
+            gameCounter++;
+            hideScoring();
+            gameOver = false;
+            passes = 0;
+            busy = true;
+            setMessage('Setting up the board...', '#87ceeb');
+            const resp = await postJSON(url, params);
+            busy = false;
+            if (!resp) {
+                setMessage('Could not start a game', '#f87171');
+                return;
+            }
+            setup = resp.setup;
+            player = resp.player;
+            human = setup.human;
+            engine = human === 'black' ? 'white' : 'black';
+            boardSize = setup.size;
+            updatePlayers();
+            setTimeout(resizeCanvas, 50);
+            const state = await refresh();
+            if (state && state.last === 'pass') passes = 1;
+            // the engine moves when it has black on an empty board, or the last move was not its own
+            if (state && (state.moves === 0 ? engine === 'black' : (state.lastcolor === 'b') === (engine === 'white'))) {
+                await computerMove();
+            } else {
+                updateTurn();
+                if (resp.resumed && state && state.moves > setup.handicap) {
+                    setMessage(`Game resumed. Your Turn (${colorName(human)})`);
+                }
+            }
+        }
+        
+        // download the game so far as an SGF file (ends up in the phone's Downloads)
+        // stops engine and web server; the game is saved, so the next start continues it
+        let statusTimer = null;
+        async function quitApp() {
+            if (busy || !confirm('Stop iGoWin? Your game is saved and continues next time.')) return;
+            clearInterval(statusTimer);
+            await postJSON('/api/quit', {});
+            window.close();   // Chrome only allows this for some windows
+            // otherwise leave nothing playable behind; the server sends Chrome to the home screen
+            document.body.innerHTML = '<div style="padding:40px 16px;text-align:center;color:#e8d5b5">' +
+                '<h2>iGoWin stopped</h2><p>Your game is saved. Tap the iGoWin icon to continue.</p></div>';
+            document.title = 'iGoWin – stopped';
+        }
+
+        function saveGame() {
+            if (!setup) return;
+            const a = document.createElement('a');
+            a.href = '/api/sgf';
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setMessage('Game saved to Downloads', '#4ade80');
+            setTimeout(() => { if (!busy && !gameOver && !scoring) updateTurn(); }, 2500);
+        }
+
+        async function playMove(row, col) {
+            const vertex = LETTERS[col] + (boardSize - row);
+            busy = true;
+            const resp = await sendGTP(`play ${human} ${vertex}`);
+            if (!resp.success) {
+                busy = false;
+                playSound('illegal');
+                setMessage(resp.result ? resp.result.replace(/^./, c => c.toUpperCase()) : 'Illegal move', '#f87171');
+                return;
+            }
+            passes = 0;
+            await refresh(true);
+            await computerMove();
+        }
+
+        async function computerMove() {
+            busy = true;
+            updateTurn();
+            const resp = await sendGTP(`genmove ${engine}`);
+            busy = false;
+            if (!resp.success) {
+                setMessage('Engine error: ' + resp.result, '#f87171');
+                return;
+            }
+            if (resp.result === 'resign') {
+                endGame('Computer resigns.', human === 'black' ? 'B+R' : 'W+R');
+                return;
+            }
+            await refresh(true);
+            if (resp.result === 'pass') {
+                passes++;
+                if (passes >= 2) {
+                    await endGame();
+                    return;
+                }
+                setMessage(`Computer passes. Your Turn (${colorName(human)})`);
+                return;
+            }
+            passes = 0;
+            updateTurn();
+        }
+
+        async function passMove() {
+            if (busy || gameOver || scoring) return;
+            busy = true;
+            await sendGTP(`play ${human} pass`);
+            passes++;
+            if (passes >= 2) {
+                busy = false;
+                await refresh(true);
+                await endGame();
+                return;
+            }
+            await refresh(true);
+            await computerMove();
+        }
+
+        async function undoMove() {
+            if (busy || !setup) return;
+            // take back the computer's reply and your own move, so it is your turn again
+            const state = await refresh();
+            if (!state) return;
+            const engineFirst = human === 'black' ? setup.handicap > 0 : setup.handicap === 0;
+            const firstOwnMove = setup.handicap + (engineFirst ? 1 : 0);
+            const n = lastColor === engine[0] ? 2 : 1;
+            if (state.moves - n < firstOwnMove) return;
+            for (let i = 0; i < n; i++) await sendGTP('undo');
+            hideScoring();
+            gameOver = false;
+            passes = 0;
+            await refresh();
+            updateTurn();
+        }
+
+        function resign() {
+            if (busy || gameOver) return;
+            if (confirm('Resign this game?')) {
+                endGame('You resigned.', human === 'black' ? 'W+R' : 'B+R');
+            }
+        }
+
+        // ends the game; without a result (two passes) it opens the scoring screen first
+        async function endGame(message, result) {
+            gameOver = true;
+            if (result) {
+                if (scoring) hideScoring();
+                await reportResult(message, result);
+            } else {
+                await openScoring(true);
+            }
+        }
+        
+        // the server saves the SGF, lets the engine learn from the game and moves the rank
+        async function reportResult(message, result) {
+            busy = true;
+            setMessage(`${message} Saving game...`, '#87ceeb');
+            const resp = await postJSON('/api/gameover', {result: result});
+            busy = false;
+            if (resp && resp.player) {
+                player = resp.player;
+                updatePlayers();
+            }
+            const text = resp && resp.message ? resp.message : '';
+            const summary = `${message} ${result}. ${text}`.replace(/\s+/g, ' ').trim();
+            setMessage(summary, '#4ade80');
+            scheduleNextGame(summary);
+        }
+        
+        // as in igowin: after a finished game the next one starts by itself,
+        // same board and mode, at the new rank
+        const NEXT_GAME_DELAY = 5;   // seconds
+        let gameCounter = 0;         // to cancel the countdown when another game starts
+        function scheduleNextGame(summary) {
+            if (!setup) return;
+            const params = {size: setup.size, style: setup.style || (setup.size === 9 ? 'free' : null)};
+            const game = gameCounter;
+            let left = NEXT_GAME_DELAY;
+            const tick = () => {
+                // stop if a game was started, a move was taken back, or a dialog is open
+                if (game !== gameCounter || !gameOver || scoring || busy ||
+                    document.getElementById('newGameModal').classList.contains('active')) return;
+                if (left === 0) {
+                    beginGame(params);
+                    return;
+                }
+                setMessage(`${summary} Next game in ${left}...`, '#4ade80');
+                left--;
+                setTimeout(tick, 1000);
+            };
+            setTimeout(tick, 1500);
+        }
+
+        async function showHint() {
+            if (busy || gameOver || scoring) return;
+            busy = true;
+            setMessage('Looking for a good move...', '#87ceeb');
+            const resp = await sendGTP(`igowin_hint ${human} 3`);
+            busy = false;
+            if (!resp.success) {
+                setMessage('No hint available', '#f87171');
+                return;
+            }
+            hints = resp.result.split(' ').filter(v => v && v !== 'pass').map(vertexToIndex);
+            drawBoard();
+            setMessage(hints.length ? 'Hint: 1 is the best move' : 'Hint: pass', '#4ade80');
+        }
+
+        async function showScore() {
+            if (busy || scoring) return;
+            await openScoring(false);
+        }
+
+        // final: end-of-game scoring that is accepted; otherwise a mid-game estimate
+        async function openScoring(final) {
+            scoring = {final: final, data: null};
+            document.getElementById('scoreTitle').textContent = final ? 'Game Over – Score' : 'Score Estimate';
+            document.getElementById('scoreDone').textContent = final ? 'Accept' : 'Close';
+            document.getElementById('scoreDispute').style.display = final ? '' : 'none';
+            setMessage(final ? 'Check the dead stones, then Accept' : 'Score estimate', '#87ceeb');
+            if (!await loadScore()) {
+                hideScoring();
+                setMessage('Score not available', '#f87171');
+                return;
+            }
+            document.getElementById('scorePanel').classList.add('active');
+        }
+
+        // arg: undefined = engine's judgement, a vertex = toggle that group
+        async function loadScore(vertex) {
+            busy = true;
+            const cmd = vertex ? `igowin_score ${vertex}` : 'igowin_score';
+            const resp = await sendGTP(cmd);
+            busy = false;
+            if (!resp.success || !scoring) return false;
+            const d = JSON.parse(resp.result);
+            scoring.data = d;
+            const black = d.black[0] + d.black[1];
+            const white = d.white[0] + d.white[1] + d.komi;
+            document.getElementById('scBT').textContent = d.black[0];
+            document.getElementById('scBP').textContent = d.black[1];
+            document.getElementById('scWT').textContent = d.white[0];
+            document.getElementById('scWP').textContent = d.white[1];
+            document.getElementById('scKomi').textContent = d.komi;
+            document.getElementById('scB').textContent = black;
+            document.getElementById('scW').textContent = white;
+            const winnerColor = d.result.startsWith('B') ? 'black' : 'white';
+            const winner = winnerColor === human ? `${colorName(winnerColor)} (You) wins` : `${colorName(winnerColor)} wins`;
+            document.getElementById('scoreResult').textContent = `${winner} by ${d.result.substring(2)}`;
+            drawBoard();
+            return true;
+        }
+
+        function hideScoring() {
+            scoring = null;
+            document.getElementById('scorePanel').classList.remove('active');
+            drawBoard();
+        }
+
+        async function closeScoring() {
+            if (busy || !scoring) return;
+            const final = scoring.final;
+            const result = scoring.data.result;
+            hideScoring();
+            if (final) {
+                await reportResult('Game over:', result);
+            } else {
+                updateTurn();
+            }
+        }
+
+        // as in igowin: back to the board to settle disputed groups; two passes count again
+        async function disputeScore() {
+            if (busy || !scoring || !scoring.final) return;
+            hideScoring();
+            gameOver = false;
+            passes = 0;
+            await refresh();
+            if (lastColor === human[0]) {
+                await computerMove();
+            } else {
+                setMessage(`Play on. Pass twice to count again. Your Turn (${colorName(human)})`);
+            }
+        }
+
+        updateSoundButton();
+        checkStatus();
+        statusTimer = setInterval(checkStatus, 3000);
+        resizeCanvas();
+
+        beginGame({size: boardSize}, '/api/resume');
+
+        // makes the page installable as an app ("Add to Home screen")
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.error('service worker', e));
+        }
+    </script>
+</body>
+</html>

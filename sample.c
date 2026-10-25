@@ -96,7 +96,7 @@ main()
 		 * call once when the program starts
 		 * specify the installation folder wher it can find the fuseki database
 		 */
-		if (initmfgo(".\\", 30) != G2OK) {
+		if (initmfgo("./", 30) != G2OK) {
 			printf("initmfgo failed\n");
 			return 1;
 		}
@@ -118,7 +118,7 @@ main()
 		for (;;) {
 			/* Computer move? */
 			if (computer_color == color_to_move || computer_both) {
-				if ((status = compmove(FALSE, color_to_move, handicap, JAPANESE, &move, PASS, 100000, 20, UCTLEVEL, FALSE, 0, NULL, FALSE, 0, TRUE)) != G2OK) {
+				if ((status = compmove(FALSE, color_to_move, handicap, JAPANESE, &move, PASS, 3000, 20, UCTLEVEL, FALSE, 0, NULL, FALSE, 0, TRUE)) != G2OK) {
 					printf("go engine internal error.\n");
 					if(status == G2NOROOM)
 						printf("Ran out of space for moves.\n");
